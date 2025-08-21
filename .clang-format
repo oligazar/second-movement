@@ -1,0 +1,13 @@
+---
+BasedOnStyle: LLVM
+IndentWidth: 2
+BreakBeforeBraces: Attach
+AllowShortFunctionsOnASingleLine: None
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: false
+ColumnLimit: 120
+IndentCaseLabels: false
+SpaceAfterCStyleCast: true
+PointerAlignment: Left
+# Don't insert braces around single-line statements
+InsertBraces: false
