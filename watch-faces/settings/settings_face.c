@@ -276,12 +276,8 @@ static void blue_led_setting_advance(void) {
 static void  git_hash_setting_display(uint8_t subsecond) {
     (void) subsecond;
     char buf[8];
-#ifdef BUILD_GIT_HASH
     // BUILD_GIT_HASH will already be truncated to 6 characters in the makefile, but this is to be safe.
     sprintf(buf, "%.6s", BUILD_GIT_HASH);
-#else
-    sprintf(buf, "------");
-#endif
     watch_display_text_with_fallback(WATCH_POSITION_TOP, "Bu{d ", "bU");
     watch_display_text(WATCH_POSITION_BOTTOM, buf);
 }
@@ -387,15 +383,11 @@ bool settings_face_loop(movement_event_t event, void *context) {
             watch_clear_display();
             state->settings_screens[state->current_page].display(event.subsecond);
             break;
-        case EVENT_MODE_BUTTON_UP:
-            movement_force_led_off();
-            movement_move_to_next_face();
-            return true;
-        case EVENT_ALARM_BUTTON_UP:
+        case EVENT_ALARM_BUTTON_DOWN:
             state->settings_screens[state->current_page].advance();
             break;
         case EVENT_TIMEOUT:
-            movement_move_to_face(0);
+            movement_move_to_page(0);
             break;
         default:
             return movement_default_loop_handler(event);
