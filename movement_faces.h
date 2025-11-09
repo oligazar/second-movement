@@ -74,4 +74,5 @@
 #include "deadline_face.h"
 #include "wordle_face.h"
 #include "pomodoro_face.h"
+#include "tomato_face.h"
 // New includes go above this line.
