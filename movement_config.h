@@ -29,7 +29,6 @@
 
 const watch_face_t watch_faces[] = {
     clock_face,
-    pomodoro_face,
     tomato_face,
     world_clock_face,
     sunrise_sunset_face,

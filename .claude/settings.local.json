@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git remote set-url:*)",
+      "Bash(git remote add:*)",
+      "Bash(git fetch:*)",
+      "Bash(git pull:*)",
+      "Bash(git checkout:*)",
+      "Bash(make:*)",
+      "Bash(lsof:*)",
+      "Bash(emmake make:*)",
+      "Bash(/Users/oleksandrkostenko/Development/my_projects/sensor_watch/emsdk/upstream/emscripten/emmake make:*)",
+      "Bash(source:*)",
+      "Bash(kill:*)",
+      "Bash(python3 -m http.server:*)",
+      "Bash(git submodule:*)",
+      "Bash(/dev/null)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(xargs kill:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
