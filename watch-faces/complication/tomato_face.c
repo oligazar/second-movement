@@ -187,7 +187,7 @@ static bool _handle_settings_mode(movement_event_t event, tomato_state_t *state)
                 _tomato_draw_setting(state, event.subsecond);
             }
             break;
-        case EVENT_ALARM_BUTTON_UP:
+        case EVENT_ALARM_BUTTON_DOWN:
             _increment_setting_value(state);
             watch_buzzer_play_sequence((int8_t *)_sound_seq_low_beep, NULL);
             _tomato_draw_setting(state, event.subsecond);
