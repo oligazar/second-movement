@@ -27,9 +27,10 @@ FO  0  25  00  4
 
 | Button | Action |
 |--------|--------|
-| ALARM (short press) | Cycle through phases (FO → br → Br → FO) |
-| ALARM (long press) | **Start the timer** |
+| LIGHT (short press) | Cycle through phases (FO → br → Br → FO) |
 | LIGHT (long press) | Reset pomodoro count to 0 |
+| ALARM (short press) | **Start the timer** |
+| ALARM (long press) | **Enter settings mode** |
 
 ### When Timer is Running
 
@@ -44,6 +45,24 @@ FO  0  25  00  4
 |--------|--------|
 | ALARM (short press) | Resume the timer |
 | ALARM (long press) | Reset to stopped state |
+
+### Settings Mode
+
+Enter settings mode with ALARM long press when timer is stopped.
+
+| Button | Action |
+|--------|--------|
+| LIGHT (short press) | Cycle to next setting (exits after last setting) |
+| ALARM (short press) | Increment current setting value |
+| ALARM (long press) | Enable quick increment (hold to rapidly increase) |
+
+**Configurable Settings:**
+1. **St** (Focus duration): 1-60 minutes (default: 25)
+2. **br** (Short break duration): 1-30 minutes (default: 5)
+3. **Br** (Long break duration): 1-60 minutes (default: 20)
+4. **Cy** (Cycles until long break): 1-10 rounds (default: 4)
+
+The current value blinks to indicate which setting is being edited. Settings are saved immediately and persist across power cycles.
 
 ## Indicators
 
@@ -94,16 +113,18 @@ The timer continues running even when you switch to other watch faces. You'll re
 2. **Low energy mode support** - Graceful display in power-saving mode
 3. **Colon blinking on custom LCD** - Hardware-based visual feedback
 4. **Paused display optimization** - Reduced CPU usage when paused
+5. **Settings mode** - User-configurable durations without code changes
+6. **Code refactoring** - Improved readability with extracted helper functions
 
 ## Configuration
 
-Session durations are configurable via static variables in `tomato_face.c`:
-```c
-static uint8_t focus_min = 25;
-static uint8_t break_min = 5;
-static uint8_t long_break_min = 20;
-static uint8_t rounds = 4;  // Number of pomodoros until long break
-```
+Session durations are now **user-configurable** via the settings mode (see Button Controls above). Enter settings mode with ALARM long press when the timer is stopped, then adjust:
+- Focus duration (default: 25 minutes)
+- Short break duration (default: 5 minutes)
+- Long break duration (default: 20 minutes)
+- Number of cycles until long break (default: 4)
+
+Settings persist across power cycles and are stored in the watch state. Default values can be changed in `tomato_face_setup()` in `tomato_face.c` if needed.
 
 ## Credits
 
