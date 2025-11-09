@@ -12,14 +12,14 @@ FO  0  25  00  4
 ││  │  │   └───── Seconds
 ││  │  └───────── Minutes
 ││  └──────────── Total completed pomodoros (cumulative)
-│└─────────────── Phase: FO (Focus), BR (Break), LB (Long Break)
+│└─────────────── Phase: FO (Focus), br (Short Break), Br (Long Break)
 ```
 
 ## Session Types
 
 - **Focus (FO)**: 25 minutes - Work session
-- **Short Break (BR)**: 5 minutes - After each focus session
-- **Long Break (LB)**: 20 minutes - After 4 focus sessions
+- **Short Break (br)**: 5 minutes - After each focus session
+- **Long Break (Br)**: 20 minutes - After 4 focus sessions
 
 ## Button Controls
 
@@ -27,7 +27,7 @@ FO  0  25  00  4
 
 | Button | Action |
 |--------|--------|
-| ALARM (short press) | Cycle through phases (FO → BR → LB → FO) |
+| ALARM (short press) | Cycle through phases (FO → br → Br → FO) |
 | ALARM (long press) | **Start the timer** |
 | LIGHT (long press) | Reset pomodoro count to 0 |
 

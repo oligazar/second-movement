@@ -182,10 +182,10 @@ static void _tomato_draw(tomato_state_t *state) {
                 strcpy(title, "FO");
                 break;
             case tomato_break:
-                strcpy(title, "BR");
+                strcpy(title, "br");
                 break;
             case tomato_long_break:
-                strcpy(title, "LB");
+                strcpy(title, "Br");
                 break;
         }
     
@@ -371,10 +371,10 @@ bool tomato_face_loop(movement_event_t event, void *context) {
                         sprintf(buf, "FO  %2d--", min);
                         break;
                     case tomato_break:
-                        sprintf(buf, "BR  %2d--", min);
+                        sprintf(buf, "br  %2d--", min);
                         break;
                     case tomato_long_break:
-                        sprintf(buf, "LB  %2d--", min);
+                        sprintf(buf, "Br  %2d--", min);
                         break;
                 }
                 watch_display_text(WATCH_POSITION_FULL, buf);
