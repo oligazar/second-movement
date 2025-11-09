@@ -28,10 +28,7 @@
 #include "watch.h"
 #include "watch_utility.h"
 
-static uint8_t focus_min = 25;
-static uint8_t break_min = 5;
-static uint8_t long_break_min = 20;
-static uint8_t rounds = 4;
+// Duration settings now stored in state struct
 
 static const int8_t _sound_seq_alarm[] = {BUZZER_NOTE_C8, 3, BUZZER_NOTE_REST, 3, -2, 2, BUZZER_NOTE_C8, 5, BUZZER_NOTE_REST, 25, 0};
 static const int8_t _sound_seq_beep[] = {BUZZER_NOTE_G8, 2, 0};
@@ -51,14 +48,18 @@ static const int8_t _sound_seq_pause[] = {
     0
     };
 
+// Forward declarations
+static void _tomato_draw(tomato_state_t *state);
+static void _tomato_draw_setting(tomato_state_t *state, uint8_t subsecond);
+
 static uint8_t get_length(tomato_state_t *state) {
     switch (state->phase) {
         case tomato_break:
-            return break_min;
+            return state->break_min;
         case tomato_long_break:
-            return long_break_min;
+            return state->long_break_min;
         default:
-            return focus_min;
+            return state->work_min;
     }
 }
 
@@ -112,10 +113,147 @@ static void _tomato_resume(tomato_state_t *state) {
     watch_buzzer_play_sequence((int8_t *)_sound_seq_pause, NULL);
 }
 
-static int _rounds(int num) {
+static int _rounds(tomato_state_t *state, int num) {
     if (num == 0) return 0;
-    int result = num % rounds;
-    return result > 0 ? result : rounds;
+    int result = num % state->rounds;
+    return result > 0 ? result : state->rounds;
+}
+
+static void _increment_setting_value(tomato_state_t *state) {
+    switch (state->current_setting) {
+        case setting_work_min:
+            state->work_min++;
+            if (state->work_min > 60) state->work_min = 1;
+            break;
+        case setting_short_break:
+            state->break_min++;
+            if (state->break_min > 30) state->break_min = 1;
+            break;
+        case setting_long_break:
+            state->long_break_min++;
+            if (state->long_break_min > 60) state->long_break_min = 1;
+            break;
+        case setting_cycles:
+            state->rounds++;
+            if (state->rounds > 10) state->rounds = 1;
+            break;
+        default:
+            break;
+    }
+}
+
+static void _cycle_phase_forward(tomato_state_t *state) {
+    switch(state->phase) {
+        case tomato_focus:
+            state->phase = tomato_break;
+            watch_buzzer_play_sequence((int8_t *)_sound_seq_low_beep, NULL);
+            break;
+        case tomato_break:
+            state->phase = tomato_long_break;
+            watch_buzzer_play_sequence((int8_t *)_sound_seq_low_beep, NULL);
+            break;
+        case tomato_long_break:
+            state->phase = tomato_focus;
+            watch_buzzer_play_sequence((int8_t *)_sound_seq_beep, NULL);
+            break;
+    }
+}
+
+static bool _handle_settings_mode(movement_event_t event, tomato_state_t *state) {
+    switch (event.event_type) {
+        case EVENT_ACTIVATE:
+        case EVENT_TICK:
+            _tomato_draw_setting(state, event.subsecond);
+            // Handle quick ticks
+            if (state->quick_ticks_running && HAL_GPIO_BTN_ALARM_read()) {
+                _increment_setting_value(state);
+            } else if (state->quick_ticks_running) {
+                // Button released, abort quick ticks
+                state->quick_ticks_running = false;
+                movement_request_tick_frequency(4);
+            }
+            break;
+        case EVENT_LIGHT_BUTTON_UP:
+            // Cycle to next setting
+            state->current_setting++;
+            if (state->current_setting >= SETTING_COUNT) {
+                // Exit settings mode
+                state->mode = tomato_mode_normal;
+                movement_request_tick_frequency(1);
+                watch_buzzer_play_sequence((int8_t *)_sound_seq_beep, NULL);
+                _tomato_draw(state);
+            } else {
+                watch_buzzer_play_sequence((int8_t *)_sound_seq_low_beep, NULL);
+                _tomato_draw_setting(state, event.subsecond);
+            }
+            break;
+        case EVENT_ALARM_BUTTON_UP:
+            _increment_setting_value(state);
+            watch_buzzer_play_sequence((int8_t *)_sound_seq_low_beep, NULL);
+            _tomato_draw_setting(state, event.subsecond);
+            break;
+        case EVENT_ALARM_LONG_PRESS:
+            // Start quick ticks
+            state->quick_ticks_running = true;
+            movement_request_tick_frequency(8);
+            break;
+        case EVENT_ALARM_LONG_UP:
+            // Stop quick ticks
+            if (state->quick_ticks_running) {
+                state->quick_ticks_running = false;
+                movement_request_tick_frequency(4);
+                watch_buzzer_play_sequence((int8_t *)_sound_seq_low_beep, NULL);
+            }
+            break;
+        case EVENT_TIMEOUT:
+            // Exit settings on timeout
+            state->mode = tomato_mode_normal;
+            movement_request_tick_frequency(1);
+            movement_move_to_face(0);
+            break;
+        default:
+            return movement_default_loop_handler(event);
+    }
+    return true;
+}
+
+static void _tomato_draw_setting(tomato_state_t *state, uint8_t subsecond) {
+    char buf[16];
+    const char *name;
+    uint8_t value;
+
+    // Get current setting name and value
+    switch (state->current_setting) {
+        case setting_work_min:
+            name = "St";
+            value = state->work_min;
+            break;
+        case setting_short_break:
+            name = "br";
+            value = state->break_min;
+            break;
+        case setting_long_break:
+            name = "Br";
+            value = state->long_break_min;
+            break;
+        case setting_cycles:
+            name = "Cy";
+            value = state->rounds;
+            break;
+        default:
+            return;
+    }
+
+    watch_clear_display();
+
+    // Blink value on odd subseconds (unless quick ticks running)
+    if (subsecond % 2 && !state->quick_ticks_running) {
+        sprintf(buf, "%s      ", name);
+    } else {
+        sprintf(buf, "%s  %2d", name, value);
+    }
+
+    watch_display_text(WATCH_POSITION_FULL, buf);
 }
 
 static void _tomato_draw(tomato_state_t *state) {
@@ -190,7 +328,7 @@ static void _tomato_draw(tomato_state_t *state) {
         }
     
     if (state->is_visible) {
-        sprintf(buf, "%2s%2d%2d%02d%2d", title, state->count, min, sec, _rounds(state->count));
+        sprintf(buf, "%2s%2d%2d%02d%2d", title, state->count, min, sec, _rounds(state, state->count));
         // printf("%s\n", buf);
         watch_display_text(WATCH_POSITION_FULL, buf);
     }
@@ -209,7 +347,7 @@ static void tomato_ring(tomato_state_t *state) {
     watch_buzzer_play_sequence((int8_t *)_sound_seq_alarm, NULL);
 
     if (state->phase == tomato_focus) {
-        if (_rounds(state->count) == rounds) {
+        if (_rounds(state, state->count) == state->rounds) {
             state->phase = tomato_long_break;
         } else {
             state->phase = tomato_break;
@@ -246,6 +384,15 @@ void tomato_face_setup(uint8_t watch_face_index, void ** context_ptr) {
         state->count = 0;
         state->is_visible = true;
         state->is_autorun = false;
+        // Initialize settings mode
+        state->mode = tomato_mode_normal;
+        state->current_setting = 0;
+        state->quick_ticks_running = false;
+        // Initialize default durations (standard Pomodoro values)
+        state->work_min = 25;
+        state->break_min = 5;
+        state->long_break_min = 20;
+        state->rounds = 4;
     }
 }
 
@@ -265,6 +412,12 @@ void tomato_face_activate(void *context) {
 bool tomato_face_loop(movement_event_t event, void *context) {
     tomato_state_t *state = (tomato_state_t *)context;
 
+    // Handle settings mode separately
+    if (state->mode == tomato_mode_setting) {
+        return _handle_settings_mode(event, state);
+    }
+
+    // Normal mode handlers
     switch (event.event_type) {
         case EVENT_ACTIVATE:
             _tomato_draw(state);
@@ -286,41 +439,40 @@ bool tomato_face_loop(movement_event_t event, void *context) {
             break;
         case EVENT_LIGHT_BUTTON_DOWN:
             movement_illuminate_led();
-            // TODO: cycle through presets
+            break;
+        case EVENT_LIGHT_BUTTON_UP:
+            // Cycle phases when stopped
+            if (!state->is_started) {
+                _cycle_phase_forward(state);
+                _tomato_draw(state);
+            }
             break;
         case EVENT_LIGHT_LONG_PRESS:
+            // Reset count when stopped
             if (!state->is_started) {
                 state->count = 0;
                 watch_buzzer_play_sequence((int8_t *)_sound_seq_low_beep, NULL);
+                _tomato_draw(state);
             }
             break;
         case EVENT_ALARM_BUTTON_UP:
             if (state->is_started) {
+                // Pause/resume when running
                 if (state->is_paused) {
                     _tomato_resume(state);
                 } else {
                     _tomato_pause(state);
                 }
+                _tomato_draw(state);
             } else {
-                switch(state->phase) {
-                    case tomato_focus:
-                        state->phase = tomato_break;
-                        watch_buzzer_play_sequence((int8_t *)_sound_seq_low_beep, NULL);
-                        break;
-                    case tomato_break:
-                        state->phase = tomato_long_break;
-                        watch_buzzer_play_sequence((int8_t *)_sound_seq_low_beep, NULL);
-                        break;
-                    case tomato_long_break:
-                        state->phase = tomato_focus;
-                        watch_buzzer_play_sequence((int8_t *)_sound_seq_beep, NULL);
-                        break;
-                }
+                // Start timer when stopped
+                _tomato_start(state, true);
+                _tomato_draw(state);
             }
-            _tomato_draw(state);
             break;
         case EVENT_ALARM_LONG_PRESS:
             if (state->is_started) {
+                // Toggle autorun or reset when running/paused
                 if (state->is_paused) {
                     if (state->phase == tomato_focus) {
                         state->count--;
@@ -334,10 +486,15 @@ bool tomato_face_loop(movement_event_t event, void *context) {
                     }
                 }
                 watch_buzzer_play_sequence((int8_t *)_sound_seq_low_beep, NULL);
+                _tomato_draw(state);
             } else {
-                _tomato_start(state, true);
+                // Enter settings mode when stopped
+                state->mode = tomato_mode_setting;
+                state->current_setting = 0;
+                movement_request_tick_frequency(4);
+                watch_buzzer_play_sequence((int8_t *)_sound_seq_beep, NULL);
+                // Settings display will be handled below
             }
-            _tomato_draw(state);
             break;
         case EVENT_BACKGROUND_TASK:
             tomato_ring(state);

@@ -53,6 +53,19 @@ typedef enum {
     tomato_long_break,
 } tomato_phase;
 
+typedef enum {
+    tomato_mode_normal,
+    tomato_mode_setting
+} tomato_mode_t;
+
+typedef enum {
+    setting_work_min,
+    setting_short_break,
+    setting_long_break,
+    setting_cycles,
+    SETTING_COUNT
+} tomato_setting_t;
+
 typedef struct {
     uint32_t target_ts;
     uint32_t now_ts;
@@ -62,6 +75,16 @@ typedef struct {
     // counts focused phases
     uint8_t count;
     uint8_t watch_face_index;
+    // settings mode
+    tomato_mode_t mode;
+    tomato_setting_t current_setting;
+    bool quick_ticks_running;
+    // configurable durations
+    uint8_t work_min;
+    uint8_t break_min;
+    uint8_t long_break_min;
+    uint8_t rounds;
+    // flags
     bool is_visible;
     bool is_started;
     bool is_paused;
