@@ -33,6 +33,16 @@
 #define TOMATO_STORAGE_ROW 0
 #define TOMATO_STORAGE_MAGIC 0x544F4D41 // "TOMA" in hex
 
+// Settings limits
+#define TOMATO_MAX_WORK_MIN 60
+#define TOMATO_MAX_SHORT_BREAK_MIN 30
+#define TOMATO_MAX_LONG_BREAK_MIN 60
+#define TOMATO_MAX_CYCLES 10
+
+// Tick frequencies
+#define TOMATO_SETTINGS_TICK_FREQ 4
+#define TOMATO_QUICK_TICK_FREQ 8
+
 typedef struct
 {
   uint32_t magic;
@@ -64,6 +74,8 @@ static void _tomato_draw(tomato_state_t *state);
 static void _tomato_draw_setting(tomato_state_t *state, uint8_t subsecond);
 static void _tomato_save_presets(tomato_state_t *state);
 static void _tomato_load_presets(tomato_state_t *state);
+static void _format_phase_label(tomato_phase phase, uint8_t preset_num, char *phase_custom, char *phase_classic);
+static void _set_time_separator(void);
 
 static void _tomato_save_presets(tomato_state_t *state)
 {
@@ -191,6 +203,44 @@ static int _rounds(tomato_state_t *state, int num)
   return result > 0 ? result : preset->rounds;
 }
 
+// Helper: Format phase label for both LCD types
+static void _format_phase_label(tomato_phase phase, uint8_t preset_num, char *phase_custom, char *phase_classic)
+{
+  char roman = (preset_num == 1) ? '{' : '|'; // '{' = I, '|' = II
+  switch (phase)
+  {
+  case tomato_focus:
+    sprintf(phase_custom, "FO%d", preset_num); // 3 chars for custom
+    sprintf(phase_classic, "F%c", roman);      // Roman numerals for classic
+    break;
+  case tomato_break:
+    sprintf(phase_custom, "br%d", preset_num); // lowercase for short break
+    sprintf(phase_classic, "b%c", roman);
+    break;
+  case tomato_long_break:
+    sprintf(phase_custom, "LB%d", preset_num); // LB = Long Break
+    sprintf(phase_classic, "B%c", roman);
+    break;
+  case tomato_summary:
+    sprintf(phase_custom, "TO%d", preset_num); // Tomato indicator
+    sprintf(phase_classic, "T%c", roman);
+    break;
+  }
+}
+
+// Helper: Set time separator (colon or decimal) based on LCD type
+static void _set_time_separator(void)
+{
+  if (watch_get_lcd_type() == WATCH_LCD_TYPE_CLASSIC)
+  {
+    watch_set_colon();
+  }
+  else
+  {
+    watch_set_decimal_if_available();
+  }
+}
+
 static void _increment_setting_value(tomato_state_t *state)
 {
   tomato_preset_t *preset = &state->presets[state->active_preset];
@@ -198,25 +248,25 @@ static void _increment_setting_value(tomato_state_t *state)
   {
   case setting_work_min:
     preset->work_min++;
-    if (preset->work_min > 60)
+    if (preset->work_min > TOMATO_MAX_WORK_MIN)
       preset->work_min = 1;
     _tomato_save_presets(state);
     break;
   case setting_short_break:
     preset->break_min++;
-    if (preset->break_min > 30)
+    if (preset->break_min > TOMATO_MAX_SHORT_BREAK_MIN)
       preset->break_min = 1;
     _tomato_save_presets(state);
     break;
   case setting_long_break:
     preset->long_break_min++;
-    if (preset->long_break_min > 60)
+    if (preset->long_break_min > TOMATO_MAX_LONG_BREAK_MIN)
       preset->long_break_min = 1;
     _tomato_save_presets(state);
     break;
   case setting_cycles:
     preset->rounds++;
-    if (preset->rounds > 10)
+    if (preset->rounds > TOMATO_MAX_CYCLES)
       preset->rounds = 1;
     _tomato_save_presets(state);
     break;
@@ -267,7 +317,7 @@ static bool _handle_settings_mode(movement_event_t event, tomato_state_t *state)
     {
       // Button released, abort quick ticks
       state->quick_ticks_running = false;
-      movement_request_tick_frequency(4);
+      movement_request_tick_frequency(TOMATO_SETTINGS_TICK_FREQ);
     }
     break;
   case EVENT_LIGHT_BUTTON_UP:
@@ -302,14 +352,14 @@ static bool _handle_settings_mode(movement_event_t event, tomato_state_t *state)
   case EVENT_ALARM_LONG_PRESS:
     // Start quick ticks
     state->quick_ticks_running = true;
-    movement_request_tick_frequency(8);
+    movement_request_tick_frequency(TOMATO_QUICK_TICK_FREQ);
     break;
   case EVENT_ALARM_LONG_UP:
     // Stop quick ticks
     if (state->quick_ticks_running)
     {
       state->quick_ticks_running = false;
-      movement_request_tick_frequency(4);
+      movement_request_tick_frequency(TOMATO_SETTINGS_TICK_FREQ);
       watch_buzzer_play_sequence((int8_t *)_sound_seq_low_beep, NULL);
     }
     break;
@@ -414,26 +464,9 @@ static void _tomato_draw(tomato_state_t *state)
       sec = result.rem;
     }
 
-    // Show phase with preset number - different lengths for custom vs classic
-    // Top left has 3 chars when using top right for rounds (OOO oo layout = 3+2)
+    // Show phase with preset number
     char phase_custom[5], phase_classic[4];
-    char roman = (preset_num == 1) ? '{' : '|'; // '{' = I, '|' = II
-    switch (state->phase)
-    {
-    case tomato_focus:
-      sprintf(phase_custom, "FO%d", preset_num); // 3 chars for custom
-      sprintf(phase_classic, "F%c", roman);      // Roman numerals for classic
-      break;
-    case tomato_break:
-      sprintf(phase_custom, "br%d", preset_num); // lowercase for short break
-      sprintf(phase_classic, "b%c", roman);
-      break;
-    case tomato_long_break:
-      sprintf(phase_custom, "LB%d", preset_num); // LB = Long Break
-      sprintf(phase_classic, "B%c", roman);
-      break;
-    }
-
+    _format_phase_label(state->phase, preset_num, phase_custom, phase_classic);
     watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, phase_custom, phase_classic);
 
     // Top right: show current round
@@ -442,19 +475,11 @@ static void _tomato_draw(tomato_state_t *state)
     watch_display_text(WATCH_POSITION_TOP_RIGHT, round_buf);
 
     // Bottom: minutes, seconds, count
-    // Custom LCD has decimal segment (same position as colon) for min:sec separator
     sprintf(buf, "%2d%02d%2d", min, sec, state->count);
     watch_display_text(WATCH_POSITION_BOTTOM, buf);
 
-    // Show separator: colon for classic LCD, decimal for custom LCD
-    if (watch_get_lcd_type() == WATCH_LCD_TYPE_CLASSIC)
-    {
-      watch_set_colon();
-    }
-    else
-    {
-      watch_set_decimal_if_available();
-    }
+    // Show time separator
+    _set_time_separator();
   }
   else
   {
@@ -486,30 +511,8 @@ static void _tomato_draw(tomato_state_t *state)
     else
     {
       // Individual phase preview: show exactly like running phase (same format, no bell)
-      // Show phase with preset number - different lengths for custom vs classic
       char phase_custom[5], phase_classic[4];
-      char roman = (preset_num == 1) ? '{' : '|'; // '{' = I, '|' = II
-      switch (state->phase)
-      {
-      case tomato_focus:
-        sprintf(phase_custom, "FO%d", preset_num); // 3 chars for custom
-        sprintf(phase_classic, "F%c", roman);      // Roman numerals for classic
-        break;
-      case tomato_break:
-        sprintf(phase_custom, "br%d", preset_num); // lowercase for short break
-        sprintf(phase_classic, "b%c", roman);
-        break;
-      case tomato_long_break:
-        sprintf(phase_custom, "LB%d", preset_num); // LB = Long Break
-        sprintf(phase_classic, "B%c", roman);
-        break;
-      case tomato_summary:
-        // Should never reach here (handled above), but for safety
-        sprintf(phase_custom, "TO%d", preset_num);
-        sprintf(phase_classic, "T%c", roman);
-        break;
-      }
-
+      _format_phase_label(state->phase, preset_num, phase_custom, phase_classic);
       watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, phase_custom, phase_classic);
 
       // Top right: show round number
@@ -522,15 +525,8 @@ static void _tomato_draw(tomato_state_t *state)
       sprintf(buf, "%2d%02d%2d", duration, 0, state->count); // duration:00 count
       watch_display_text(WATCH_POSITION_BOTTOM, buf);
 
-      // Show separator: colon for classic LCD, decimal for custom LCD
-      if (watch_get_lcd_type() == WATCH_LCD_TYPE_CLASSIC)
-      {
-        watch_set_colon();
-      }
-      else
-      {
-        watch_set_decimal_if_available();
-      }
+      // Show time separator
+      _set_time_separator();
     }
   }
 
@@ -709,7 +705,7 @@ bool tomato_face_loop(movement_event_t event, void *context)
     {
       state->mode = tomato_mode_setting;
       state->current_setting = 0;
-      movement_request_tick_frequency(4);
+      movement_request_tick_frequency(TOMATO_SETTINGS_TICK_FREQ);
       watch_buzzer_play_sequence((int8_t *)_sound_seq_beep, NULL);
     }
     break;
@@ -804,27 +800,9 @@ bool tomato_face_loop(movement_event_t event, void *context)
       uint8_t min = result.quot;
 
       // Same preset indicators as main display
-      // Top left has 3 chars when using top right for rounds (OOO oo layout = 3+2)
       uint8_t preset_num = state->active_preset + 1;
       char phase_custom[5], phase_classic[4];
-      char roman = (preset_num == 1) ? '{' : '|'; // '{' = I, '|' = II
-
-      switch (state->phase)
-      {
-      case tomato_focus:
-        sprintf(phase_custom, "FO%d", preset_num);
-        sprintf(phase_classic, "F%c", roman); // Roman numerals for classic
-        break;
-      case tomato_break:
-        sprintf(phase_custom, "br%d", preset_num); // lowercase for short break
-        sprintf(phase_classic, "b%c", roman);
-        break;
-      case tomato_long_break:
-        sprintf(phase_custom, "LB%d", preset_num); // LB = Long Break
-        sprintf(phase_classic, "B%c", roman);
-        break;
-      }
-
+      _format_phase_label(state->phase, preset_num, phase_custom, phase_classic);
       watch_display_text_with_fallback(WATCH_POSITION_TOP_LEFT, phase_custom, phase_classic);
       watch_display_text(WATCH_POSITION_BOTTOM, "      ");
     }
