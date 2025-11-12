@@ -19,15 +19,31 @@ FO1  1  17:00  5
 ```
 
 ### When Stopped
+
+**Summary View** (default when stopped):
 ```
-FO1  4  25 05 20
+TO1  4  25 05 20
 │││  │  │  │  └─ Long break duration (minutes)
 │││  │  │  └──── Short break duration (minutes)
 │││  │  └─────── Focus duration (minutes)
 │││  └────────── Cycles until long break (rounds)
 ││└───────────── Preset number (1-2)
-│└────────────── Next phase to start
+│└────────────── Tomato preset indicator
 ```
+
+**Phase Preview** (cycle with LIGHT button):
+```
+FO1  0  25:00  0
+│││  │  ││ ││  └─ Total completed work sessions
+│││  │  ││ └───── Seconds (always 00 when stopped)
+│││  │  │└─────── Decimal point/colon separator
+│││  │  └──────── Duration in minutes
+│││  └─────────── Round number (0 until first session completes)
+││└────────────── Preset number (1-2)
+│└─────────────── Phase to preview: FO (Focus), br (Short Break), LB (Long Break)
+```
+
+Phase preview shows exactly what the display will look like when running, minus the bell icon.
 
 ## Preset System
 
