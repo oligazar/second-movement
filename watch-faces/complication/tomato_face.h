@@ -2,6 +2,7 @@
  * MIT License
  *
  * Copyright (c) 2022 Wesley Ellis
+ * Copyright (c) 2025 Oleksandr Kostenko
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -13,7 +14,7 @@
  * The above copyright notice and this permission notice shall be included in all
  * copies or substantial portions of the Software.
  *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY phase, EXPRESS OR
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
@@ -28,21 +29,24 @@
 /*
  * TOMATO TIMER face
  *
- * Add a "tomato" timer watch face that alternates between 25 and 5 minute
- * timers as in the Pomodoro Technique.
+ * Pomodoro Technique timer for Sensor Watch implementing work/break cycles.
  *  https://en.wikipedia.org/wiki/Pomodoro_Technique
  *
- * The top right letter shows phase (f for focus or b for break).
- * The bottom right shows how many focus sessions you've completed.
- * (You can reset the count with a long press of alarm)
+ * Original concept and implementation by Wesley Ellis (2022)
+ * Significantly enhanced for second-movement by Oleksandr Kostenko (2025):
+ *  - Pause/resume, long breaks, autorun mode
+ *  - User-configurable durations via settings mode
+ *  - Low energy mode support
  *
- * When you show up and it says 25 minutes, you can start it (alarm),
- *  switch to 5 minute (light) phase or leave (mode).
+ * Features:
+ *  - Focus sessions (default 25 min), short breaks (5 min), long breaks (20 min)
+ *  - Configurable cycle count before long break (default 4)
+ *  - Pause/resume with ALARM button
+ *  - Autorun mode for automatic session transitions
+ *  - Background task support (timer runs when on other faces)
+ *  - Settings mode: ALARM long press when stopped
  *
- * When it's running you can reset (alarm), or leave (mode).
- *
- * When it's done, we beep and go back to step 1, changing switching
- *  phase from focus to break (or break to focus)
+ * See documents/tomato_face.md for complete documentation.
  */
 
 #include "movement.h"
@@ -63,8 +67,16 @@ typedef enum {
     setting_short_break,
     setting_long_break,
     setting_cycles,
+    setting_reset_count,
     SETTING_COUNT
 } tomato_setting_t;
+
+typedef struct {
+    uint8_t work_min;
+    uint8_t break_min;
+    uint8_t long_break_min;
+    uint8_t rounds;
+} tomato_preset_t;
 
 typedef struct {
     uint32_t target_ts;
@@ -79,11 +91,9 @@ typedef struct {
     tomato_mode_t mode;
     tomato_setting_t current_setting;
     bool quick_ticks_running;
-    // configurable durations
-    uint8_t work_min;
-    uint8_t break_min;
-    uint8_t long_break_min;
-    uint8_t rounds;
+    // preset system
+    tomato_preset_t presets[2];
+    uint8_t active_preset;  // 0 or 1
     // flags
     bool is_visible;
     bool is_started;
