@@ -90,8 +90,8 @@ The current value blinks to indicate which setting is being edited. All settings
 ## Indicators
 
 - **BELL**: Solid when running, blinks when paused
-- **COLON**: Blinks when timer is running (both displays, hardware-based)
-- **DECIMAL POINT**: Shows between minutes and seconds when running (custom LCD only, same position as colon)
+- **COLON**: Shows between minutes and seconds when running (classic LCD only, hardware-based)
+- **DECIMAL POINT**: Shows between minutes and seconds when running (custom LCD only, hardware-based)
 - **LAP** (Looped arrow on custom, "LAP" text on classic): Autorun mode enabled
 
 ## Features
