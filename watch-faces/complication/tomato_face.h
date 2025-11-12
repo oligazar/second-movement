@@ -55,6 +55,7 @@ typedef enum {
     tomato_focus,
     tomato_break,
     tomato_long_break,
+    tomato_summary      // View-only state for preset overview (stopped state only)
 } tomato_phase;
 
 typedef enum {
