@@ -27,3 +27,7 @@ fp-info-cache
 *.plan
 /.direnv
 /.emscripten_cache
+
+# Dual emulator builds (local testing only)
+build-sim-classic/
+build-sim-custom/
