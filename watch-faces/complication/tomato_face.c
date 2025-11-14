@@ -372,22 +372,22 @@ static void _tomato_draw_setting(tomato_state_t *state, uint8_t subsecond) {
     value = preset->work_min;
     break;
   case setting_short_break:
-    name_custom = "break";
+    name_custom = "BREAK";
     name_classic = "br";
     value = preset->break_min;
     break;
   case setting_long_break:
-    name_custom = "LnBrk";
+    name_custom = "LnBr";
     name_classic = "Br";
     value = preset->long_break_min;
     break;
   case setting_cycles:
-    name_custom = "CYCLE";
+    name_custom = "CYCLS";
     name_classic = "CL";
     value = preset->rounds;
     break;
   case setting_reset_count:
-    name_custom = "COUNT";
+    name_custom = "RESET";
     name_classic = "Ct";
     value = state->count;
     break;
