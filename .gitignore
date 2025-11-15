@@ -31,3 +31,4 @@ fp-info-cache
 # Dual emulator builds (local testing only)
 build-sim-classic/
 build-sim-custom/
+.claude/
