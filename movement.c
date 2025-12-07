@@ -529,16 +529,65 @@ bool movement_is_secondary_page(uint8_t page_index) {
     return page_index >= movement_state.secondary_page_idx;
 }
 
+static bool _movement_is_secondary_page(uint8_t page_index) {
+    // NOTE: If the secondary_page_index is 0, effectively all pages are secondary
+    return page_index >= movement_state.secondary_page_idx;
+}
+
+static bool _movement_is_tertiary_page(uint8_t page_index) {
+    // NOTE: If the tertiary_page_index is 0, effectively all pages are tertiary
+    return page_index >= movement_state.tertiary_page_idx;
+}
+
+static void _movement_determine_page_group(uint8_t page_index, uint8_t* group_min_index, uint8_t* group_max_index, bool* is_secondary, bool* is_tertiary) {
+    if (_movement_is_tertiary_page(page_index)) {
+        *group_max_index = MOVEMENT_NUM_FACES;
+        *group_min_index = movement_state.tertiary_page_idx;
+        *is_secondary = false;
+        *is_tertiary = true;
+    } else if (_movement_is_secondary_page(page_index)) {
+        *group_max_index = movement_state.tertiary_page_idx;
+        *group_min_index = movement_state.secondary_page_idx;
+        *is_secondary = true;
+        *is_tertiary = false;
+    } else {
+        *group_max_index = movement_state.secondary_page_idx;
+        *group_min_index = 0;
+        *is_secondary = false;
+        *is_tertiary = false;
+    }
+}
+
+static uint8_t _movement_find_next_page(uint8_t page_index) {
+    uint8_t page_max;
+
+    if (_movement_is_tertiary_page(page_index)) {
+        page_max = MOVEMENT_NUM_FACES;
+    } else if (_movement_is_secondary_page(page_index)) {
+        page_max = movement_state.tertiary_page_idx;
+    } else {
+        page_max = movement_state.secondary_page_idx;
+    }
+
+    return (page_index + 1) % page_max;
+}
+
 uint8_t movement_find_first_enabled_page(uint8_t page_index) {
     bool found = false;
-    bool is_secondary = movement_is_secondary_page(page_index);
 
     uint8_t enabled_page_index = page_index;
 
-    uint8_t max_page_index = is_secondary ? MOVEMENT_NUM_FACES : movement_state.secondary_page_idx;
+    bool is_secondary;
+    bool is_tertiary;
+    uint8_t max_page_index;
+    uint8_t min_page_index;
 
-    for (uint8_t i = 0; i < max_page_index; i++) {
-        uint8_t curr_page_index = (page_index + i) % max_page_index;
+    _movement_determine_page_group(page_index, &min_page_index, &max_page_index, &is_secondary, &is_tertiary);
+
+    uint8_t num_pages = max_page_index - min_page_index;
+
+    for (uint8_t i = 0; i < num_pages; i++) {
+        uint8_t curr_page_index = min_page_index + (page_index - min_page_index + i) % num_pages;
         if (movement_is_page_enabled(curr_page_index)) {
             enabled_page_index  = curr_page_index;
             found = true;
@@ -547,12 +596,12 @@ uint8_t movement_find_first_enabled_page(uint8_t page_index) {
         }
     }
 
-    if (found || is_secondary) {
+    if (found || is_secondary || is_tertiary) {
         return enabled_page_index;
     }
 
     // Corner case: If requesting a primary face (for example go to page 0)
-    // but all primary pages are disable, extend search to secondary pages
+    // but all primary pages are disabled, extend search to secondary pages
     for (uint8_t i = movement_state.secondary_page_idx; i < MOVEMENT_NUM_FACES; i++) {
         uint8_t curr_page_index = i % MOVEMENT_NUM_FACES;
         if (movement_is_page_enabled(curr_page_index)) {
@@ -571,9 +620,7 @@ void movement_move_to_page(uint8_t page_index) {
 }
 
 void movement_move_to_next_page(void) {
-    uint8_t page_max = movement_is_secondary_page(movement_state.current_page_idx) ? MOVEMENT_NUM_FACES : movement_state.secondary_page_idx;
-
-    movement_move_to_page((movement_state.current_page_idx + 1) % page_max);
+    movement_move_to_page(_movement_find_next_page(movement_state.current_page_idx));
 }
 
 void movement_swap_page_order(uint8_t page_a_index, uint8_t page_b_index) {
@@ -1163,6 +1210,15 @@ void app_setup(void) {
         }
 
         movement_state.secondary_page_idx = MOVEMENT_SECONDARY_FACE_INDEX;
+        #ifdef MOVEMENT_TERTIARY_FACE_INDEX
+        movement_state.tertiary_page_idx = MOVEMENT_TERTIARY_FACE_INDEX;
+        if (movement_state.tertiary_page_idx < movement_state.secondary_page_idx) {
+            movement_state.tertiary_page_idx = movement_state.secondary_page_idx;
+        }
+        #else
+        // If no tertiary face index is defined, set it to NUM_FACES (disables tertiary)
+        movement_state.tertiary_page_idx = MOVEMENT_NUM_FACES;
+        #endif
         movement_state.current_page_idx = movement_find_first_enabled_page(0);
         movement_state.current_face_idx = movement_page_to_face(movement_state.current_page_idx);
 

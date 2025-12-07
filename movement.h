@@ -274,6 +274,7 @@ typedef struct {
     uint8_t current_page_idx;
     uint8_t next_page_idx;
     uint8_t secondary_page_idx;
+    uint8_t tertiary_page_idx;
     bool watch_page_changed;
 
     // LED stuff
