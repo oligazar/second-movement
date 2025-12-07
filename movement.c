@@ -505,6 +505,11 @@ bool movement_default_loop_handler(movement_event_t event) {
             }
             break;
         }
+        case EVENT_MODE_REALLY_LONG_PRESS: {
+            // Jump to tertiary face set (if configured)
+            movement_move_to_page(movement_state.tertiary_page_idx);
+            break;
+        }
         default:
             break;
     }
