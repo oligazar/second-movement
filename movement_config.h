@@ -52,6 +52,13 @@ const watch_face_t watch_faces[] = {
  */
 #define MOVEMENT_SECONDARY_FACE_INDEX (MOVEMENT_NUM_FACES - 5)
 
+/* Determines what face to go to on really long press (6+ seconds) of the Mode button.
+ * Set this to enable a tertiary face set that's separate from primary and secondary.
+ * If not defined, tertiary navigation is disabled.
+ * Uncomment the line below to enable:
+ */
+// #define MOVEMENT_TERTIARY_FACE_INDEX (MOVEMENT_NUM_FACES - 7)
+
 /* Custom hourly chime tune. Check movement_custom_signal_tunes.h for options. */
 #define SIGNAL_TUNE_DEFAULT
 

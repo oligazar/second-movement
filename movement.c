@@ -564,17 +564,22 @@ static void _movement_determine_page_group(uint8_t page_index, uint8_t* group_mi
 }
 
 static uint8_t _movement_find_next_page(uint8_t page_index) {
+    uint8_t page_min;
     uint8_t page_max;
 
     if (_movement_is_tertiary_page(page_index)) {
+        page_min = movement_state.tertiary_page_idx;
         page_max = MOVEMENT_NUM_FACES;
     } else if (_movement_is_secondary_page(page_index)) {
+        page_min = movement_state.secondary_page_idx;
         page_max = movement_state.tertiary_page_idx;
     } else {
+        page_min = 0;
         page_max = movement_state.secondary_page_idx;
     }
 
-    return (page_index + 1) % page_max;
+    uint8_t group_size = page_max - page_min;
+    return page_min + ((page_index - page_min + 1) % group_size);
 }
 
 uint8_t movement_find_first_enabled_page(uint8_t page_index) {
