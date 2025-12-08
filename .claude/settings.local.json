@@ -20,7 +20,10 @@
       "Bash(xargs kill:*)",
       "Bash(git log:*)",
       "Bash(git cherry-pick:*)",
-      "Bash(git diff:*)"
+      "Bash(git diff:*)",
+      "Bash(find:*)",
+      "Bash(cat:*)",
+      "Bash(python3:*)"
     ],
     "deny": [],
     "ask": []
