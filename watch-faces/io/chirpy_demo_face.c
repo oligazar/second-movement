@@ -261,10 +261,9 @@ bool chirpy_demo_face_loop(movement_event_t event, void *context) {
             if (state->mode != CDM_CHIRPING) {
                 movement_move_to_page(0);
             }
-            // fall through
-        default:
-            movement_default_loop_handler(event);
             break;
+        default:
+            return movement_default_loop_handler(event);
     }
 
     return true;
