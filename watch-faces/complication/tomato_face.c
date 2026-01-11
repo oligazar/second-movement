@@ -350,7 +350,7 @@ static bool _handle_settings_mode(movement_event_t event, tomato_state_t *state)
     // Exit settings on timeout
     state->mode = tomato_mode_normal;
     movement_request_tick_frequency(1);
-    movement_move_to_face(0);
+    movement_move_to_page(0);
     break;
   default:
     return movement_default_loop_handler(event);
@@ -708,7 +708,7 @@ bool tomato_face_loop(movement_event_t event, void *context) {
     break;
   case EVENT_TIMEOUT:
     if (!state->is_started || state->is_paused) {
-      movement_move_to_face(0);
+      movement_move_to_page(0);
     }
     break;
   case EVENT_LOW_ENERGY_UPDATE:
@@ -736,7 +736,7 @@ bool tomato_face_loop(movement_event_t event, void *context) {
     }
     else {
       // Paused or stopped - navigate away for consistency
-      movement_move_to_face(0);
+      movement_move_to_page(0);
     }
     break;
   default:
