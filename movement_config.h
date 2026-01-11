@@ -40,8 +40,12 @@ const watch_face_t watch_faces[] = {
     voltage_face,
     settings_face,
     set_time_face,
+    tunes_face,
+    finetune_face,
+    nanosec_face,
+    chirpy_demo_face,
+    pin_face,
 };
-
 #define MOVEMENT_NUM_FACES (sizeof(watch_faces) / sizeof(watch_face_t))
 
 /* Determines what face to go to from the first face on long press of the Mode button.
@@ -57,7 +61,7 @@ const watch_face_t watch_faces[] = {
  * If not defined, tertiary navigation is disabled.
  * Uncomment the line below to enable:
  */
-#define MOVEMENT_TERTIARY_FACE_INDEX (MOVEMENT_NUM_FACES - 9)
+#define MOVEMENT_TERTIARY_FACE_INDEX (MOVEMENT_NUM_FACES - 10)
 
 /* Determines the intensity of the led colors
  * Set a hex value 0-15 with 0x0 being off and 0xF being max intensity

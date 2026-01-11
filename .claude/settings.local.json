@@ -23,7 +23,9 @@
       "Bash(git diff:*)",
       "Bash(find:*)",
       "Bash(cat:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(git ls-tree:*)",
+      "Bash(git stash:*)"
     ],
     "deny": [],
     "ask": []
